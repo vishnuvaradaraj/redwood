@@ -1,7 +1,7 @@
 // Redwood is an internet content-filtering program.
 // It is designed to replace and improve on DansGuardian
 // as the core of the Security Appliance internet filter.
-package main
+package redwood
 
 import (
 	"fmt"
@@ -13,10 +13,32 @@ import (
 	"strings"
 )
 
-func main() {
-	go manageConfig()
+func RunServer(configRoot string) {
 
-	conf := getConfig()
+	go runServerInternal(configRoot)
+}
+
+func StopServer() {
+
+	go stopServerInternal()
+}
+
+func stopServerInternal() {
+	log.Fatalln("Stopping server")
+}
+
+func runServerInternal(configRoot string) {
+
+	f, err := os.OpenFile(configRoot + "/logs/debug.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err == nil {
+    	defer f.Close()
+		log.SetOutput(f)
+	}
+
+
+	go ManageConfig(configRoot)
+
+	conf := GetConfig()
 
 	if conf.PIDFile != "" {
 		pid := os.Getpid()
@@ -30,7 +52,7 @@ func main() {
 	}
 
 	if conf.TestURL != "" {
-		runURLTest(conf.TestURL)
+		RunURLTest(conf.TestURL)
 		return
 	}
 
@@ -41,8 +63,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("error listening for connections on %s: %s", addr, err)
 		}
-		listenerChan <- proxyListener
-		server := http.Server{Handler: proxyHandler{}}
+		ListenerChan <- proxyListener
+		server := http.Server{Handler: ProxyHandler{}}
 		go func() {
 			err = server.Serve(proxyListener)
 			if err != nil && !strings.Contains(err.Error(), "use of closed") {
@@ -54,7 +76,7 @@ func main() {
 
 	for _, addr := range conf.TransparentAddresses {
 		go func() {
-			err := runTransparentServer(addr)
+			err := RunTransparentServer(addr)
 			if err != nil && !strings.Contains(err.Error(), "use of closed") {
 				log.Fatalln("Error running transparent HTTPS proxy:", err)
 			}

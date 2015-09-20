@@ -1,4 +1,4 @@
-package main
+package redwood
 
 import (
 	"bytes"
@@ -108,7 +108,7 @@ func SSLBump(conn net.Conn, serverAddr, user, authUser string) {
 		}
 	}()
 
-	conf := getConfig()
+	conf := GetConfig()
 
 	if serverAddr == localServer+":443" {
 		// The internal server gets special treatment, since there is no remote
@@ -261,7 +261,7 @@ func SSLBump(conn net.Conn, serverAddr, user, authUser string) {
 	}
 	listener := &singleListener{conn: tlsConn}
 	server := http.Server{
-		Handler: proxyHandler{
+		Handler: ProxyHandler{
 			TLS:         true,
 			connectPort: port,
 			user:        authUser,

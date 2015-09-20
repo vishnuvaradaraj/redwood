@@ -1,4 +1,4 @@
-package main
+package redwood
 
 // functions for reading configuration files
 
@@ -22,21 +22,6 @@ import (
 	"github.com/andybalholm/dhash"
 )
 
-type dhashWithThreshold struct {
-	dhash.Hash
-
-	// Threshold is the number of bits that can be different and still be counted
-	// as a match. If it is -1, the global threshold is used.
-	Threshold int
-}
-
-func (d dhashWithThreshold) String() string {
-	if d.Threshold == -1 {
-		return d.Hash.String()
-	}
-	return fmt.Sprintf("%v-%d", d.Hash, d.Threshold)
-}
-
 // A config object holds a complete set of Redwood's configuration settings.
 type config struct {
 	BlockTemplate     *template.Template
@@ -47,7 +32,7 @@ type config struct {
 	Threshold         int
 	URLRules          *URLMatcher
 
-	ImageHashes    []dhashWithThreshold
+	ImageHashes    []dhash.Hash
 	DhashThreshold int
 
 	ACLs       ACLDefinitions
@@ -93,7 +78,7 @@ type config struct {
 	flags *flag.FlagSet
 }
 
-func loadConfiguration() (*config, error) {
+func loadConfiguration(configRoot string) (*config, error) {
 	c := &config{
 		flags:             flag.NewFlagSet("config", flag.ContinueOnError),
 		URLRules:          newURLMatcher(),
@@ -108,15 +93,15 @@ func loadConfiguration() (*config, error) {
 		Passwords:         map[string]string{},
 	}
 
-	c.flags.StringVar(&c.AccessLog, "access-log", "", "path to access-log file")
-	c.newActiveFlag("acls", "", "access-control-list (ACL) rule file", c.loadACLs)
+	c.flags.StringVar(&c.AccessLog, "access-log", configRoot + "/logs/access.log", "path to access-log file")
+	c.newActiveFlag("acls", configRoot + "/acls.conf", "access-control-list (ACL) rule file", c.loadACLs)
 	c.newActiveFlag("auth-helper", "", "program to authenticate users", c.startAuthHelper)
 	c.flags.StringVar(&c.AuthRealm, "auth-realm", "Redwood", "realm name for authentication prompts")
 	c.flags.BoolVar(&c.BlockObsoleteSSL, "block-obsolete-ssl", false, "block SSL connections with protocol version too old to filter")
-	c.newActiveFlag("blockpage", "", "path to template for block page", c.loadBlockPage)
-	c.newActiveFlag("c", "/etc/redwood/redwood.conf", "configuration file path", c.readConfigFile)
+	c.newActiveFlag("blockpage", configRoot + "/block.html", "path to template for block page", c.loadBlockPage)
+	c.newActiveFlag("c", configRoot + "/redwood.conf", "configuration file path", c.readConfigFile)
 	c.flags.IntVar(&c.AuthCacheTime, "cache-auth", 0, "time (in seconds) to cache a device's proxy authentication")
-	c.newActiveFlag("categories", "/etc/redwood/categories", "path to configuration files for categories", c.loadCategories)
+	c.newActiveFlag("categories", configRoot + "/categories", "path to configuration files for categories", c.loadCategories)
 	c.flags.StringVar(&c.CGIBin, "cgi-bin", "", "path to CGI files for built-in web server")
 	c.newActiveFlag("content-pruning", "", "path to config file for content pruning", c.loadPruningConfig)
 	c.flags.BoolVar(&c.CountOnce, "count-once", false, "count each phrase only once per page")
@@ -127,13 +112,13 @@ func loadConfiguration() (*config, error) {
 	c.flags.BoolVar(&c.LogUserAgent, "log-user-agent", false, "Include User-Agent header in access log.")
 	c.newActiveFlag("password-file", "", "path to file of usernames and passwords", c.readPasswordFile)
 	c.flags.StringVar(&c.PIDFile, "pidfile", "", "path of file to store process ID")
-	c.newActiveFlag("query-changes", "", "path to config file for modifying URL query strings", c.loadQueryConfig)
-	c.flags.StringVar(&c.StaticFilesDir, "static-files-dir", "", "path to static files for built-in web server")
+	c.newActiveFlag("query-changes", configRoot + "/safesearch.conf", "path to config file for modifying URL query strings", c.loadQueryConfig)
+	c.flags.StringVar(&c.StaticFilesDir, "static-files-dir", configRoot + "/www", "path to static files for built-in web server")
 	c.flags.StringVar(&c.TestURL, "test", "", "URL to test instead of running proxy server")
-	c.flags.IntVar(&c.Threshold, "threshold", 0, "minimum score for a blocked category to block a page")
-	c.flags.StringVar(&c.CertFile, "tls-cert", "", "path to certificate for serving HTTPS")
-	c.flags.StringVar(&c.KeyFile, "tls-key", "", "path to TLS certificate key")
-	c.flags.StringVar(&c.TLSLog, "tls-log", "", "path to tls log file")
+	c.flags.IntVar(&c.Threshold, "threshold", 100, "minimum score for a blocked category to block a page")
+	c.flags.StringVar(&c.CertFile, "tls-cert", configRoot + "/root.pem", "path to certificate for serving HTTPS")
+	c.flags.StringVar(&c.KeyFile, "tls-key", configRoot + "/root_key.pem", "path to TLS certificate key")
+	c.flags.StringVar(&c.TLSLog, "tls-log", configRoot + "/logs/tls.log", "path to tls log file")
 	c.newActiveFlag("trusted-root", "", "path to file of additional trusted root certificates (in PEM format)", c.addTrustedRoots)
 
 	c.newActiveFlag("http-proxy", "", "address (host:port) to listen for proxy connections on", func(s string) error {
@@ -163,10 +148,13 @@ func loadConfiguration() (*config, error) {
 		}
 	}
 	if !specified {
-		err := c.readConfigFile("/etc/redwood/redwood.conf")
+		fmt.Println("Loading config...\n")
+		err := c.readConfigFile(configRoot + "/redwood.conf")
 		if err != nil {
 			return nil, err
 		}
+		c.loadACLs(configRoot + "/acls.conf")
+		c.loadBlockPage(configRoot + "/block.html")
 	}
 
 	err := c.flags.Parse(os.Args[1:])
@@ -175,7 +163,7 @@ func loadConfiguration() (*config, error) {
 	}
 
 	if c.Categories == nil {
-		err := c.loadCategories("/etc/redwood/categories")
+		err := c.loadCategories(configRoot + "/categories")
 		if err != nil {
 			log.Println(err)
 		}

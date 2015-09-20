@@ -1,6 +1,6 @@
 // +build !386
 
-package main
+package redwood
 
 import (
 	"syscall"

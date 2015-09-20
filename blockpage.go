@@ -1,4 +1,4 @@
-package main
+package redwood
 
 import (
 	"fmt"
@@ -15,6 +15,9 @@ import (
 const transparent1x1 = "GIF89a\x10\x00\x10\x00\x80\xff\x00\xc0\xc0\xc0\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x10\x00\x10\x00\x00\x02\x0e\x84\x8f\xa9\xcb\xed\x0f\xa3\x9c\xb4\u068b\xb3>\x05\x00;"
 
 func (c *config) loadBlockPage(path string) error {
+
+	log.Println("loadBlockPage:", path)
+	
 	bt := template.New("blockpage")
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -59,6 +62,7 @@ func (c *config) aclDescription(name string) string {
 
 // showBlockPage shows a block page for a page that was blocked by an ACL.
 func (c *config) showBlockPage(w http.ResponseWriter, r *http.Request, user string, tally map[rule]int, scores map[string]int, rule ACLActionRule) {
+
 	w.WriteHeader(http.StatusForbidden)
 	if c.BlockTemplate == nil {
 		return
@@ -81,7 +85,7 @@ func (c *config) showBlockPage(w http.ResponseWriter, r *http.Request, user stri
 		categories = append(categories, "not "+c.aclDescription(acl))
 	}
 	data.Categories = strings.Join(categories, ", ")
-
+	
 	err := c.BlockTemplate.Execute(w, data)
 	if err != nil {
 		log.Println("Error filling in block page template:", err)

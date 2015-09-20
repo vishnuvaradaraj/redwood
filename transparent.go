@@ -1,4 +1,4 @@
-package main
+package redwood
 
 import (
 	"errors"
@@ -20,12 +20,12 @@ func init() {
 }
 
 // runTransparentServer transparently intercepts connections, listening at addr.
-func runTransparentServer(addr string) error {
+func RunTransparentServer(addr string) error {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
-	listenerChan <- ln
+	ListenerChan <- ln
 
 	var tempDelay time.Duration
 

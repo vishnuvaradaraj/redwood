@@ -5,7 +5,7 @@
 // This file is based on http://code.google.com/p/codesearch/source/browse/index/regexp.go,
 // modified to find strings instead of trigrams.
 
-package main
+package redwood
 
 import (
 	"regexp/syntax"

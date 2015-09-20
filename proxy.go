@@ -1,4 +1,4 @@
-package main
+package redwood
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
-type proxyHandler struct {
+type ProxyHandler struct {
 	// TLS is whether this is an HTTPS connection.
 	TLS bool
 
@@ -66,11 +66,11 @@ func lanAddress(addr string) bool {
 
 var titleSelector = cascadia.MustCompile("title")
 
-func (h proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	activeConnections.Add(1)
 	defer activeConnections.Done()
 
-	conf := getConfig()
+	conf := GetConfig()
 
 	if !conf.ACLsLoaded {
 		http.Error(w, "Redwood proxy configuration needs to be updated for this version of Redwood.\n(Use ACLs)", 500)
@@ -392,8 +392,7 @@ func (h proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hash := dhash.New(img)
 
 		for _, h := range conf.ImageHashes {
-			distance := dhash.Distance(hash, h.Hash)
-			if distance <= h.Threshold || h.Threshold == -1 && distance <= conf.DhashThreshold {
+			if dhash.Distance(hash, h) <= conf.DhashThreshold {
 				tally[rule{imageHash, h.String()}]++
 			}
 		}
@@ -495,7 +494,7 @@ func init() {
 	transport.RegisterProtocol("ftp", FTPTransport{})
 }
 
-func (h proxyHandler) makeWebsocketConnection(w http.ResponseWriter, r *http.Request) {
+func (h ProxyHandler) makeWebsocketConnection(w http.ResponseWriter, r *http.Request) {
 	addr := r.Host
 	if _, _, err := net.SplitHostPort(addr); err != nil {
 		// There is no port specified; we need to add it.

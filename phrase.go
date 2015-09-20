@@ -1,4 +1,4 @@
-package main
+package redwood
 
 // content phrase matching, using the Aho-Corasick algorithm
 

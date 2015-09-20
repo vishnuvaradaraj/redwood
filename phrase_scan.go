@@ -1,4 +1,4 @@
-package main
+package redwood
 
 // scanning an HTTP response for phrases
 

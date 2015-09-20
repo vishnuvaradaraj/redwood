@@ -1,4 +1,4 @@
-package main
+package redwood
 
 // storage and loading of categories
 
@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/andybalholm/dhash"
@@ -174,23 +173,12 @@ func (cf *config) collectRules() {
 			case contentPhrase:
 				cf.ContentPhraseList.addPhrase(rule.content)
 			case imageHash:
-				content := rule.content
-				threshold := -1
-				if dash := strings.Index(content, "-"); dash != -1 {
-					t, err := strconv.Atoi(content[dash+1:])
-					if err != nil {
-						log.Printf("%v: %v", rule, err)
-						continue
-					}
-					threshold = t
-					content = content[:dash]
-				}
-				h, err := dhash.Parse(content)
+				h, err := dhash.Parse(rule.content)
 				if err != nil {
 					log.Printf("%v: %v", rule, err)
 					continue
 				}
-				cf.ImageHashes = append(cf.ImageHashes, dhashWithThreshold{h, threshold})
+				cf.ImageHashes = append(cf.ImageHashes, h)
 			default:
 				cf.URLRules.AddRule(rule)
 			}

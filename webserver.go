@@ -1,7 +1,8 @@
-package main
+package redwood
 
 import (
 	"log"
+	"fmt"
 	"net/http"
 	"net/http/cgi"
 	"os"
@@ -13,7 +14,10 @@ import (
 const localServer = "203.0.113.1"
 
 func (c *config) startWebServer() {
+	
 	if c.StaticFilesDir != "" {
+	
+		fmt.Printf("Webserver @ " + c.StaticFilesDir + "\n")
 		c.ServeMux.Handle("/", http.FileServer(http.Dir(c.StaticFilesDir)))
 	}
 

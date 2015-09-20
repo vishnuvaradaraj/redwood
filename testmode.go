@@ -1,4 +1,4 @@
-package main
+package redwood
 
 import (
 	"bytes"
@@ -16,8 +16,8 @@ import (
 // support for running "redwood -test http://example.com"
 
 // runURLTest prints debugging information about how the URL and its content would be rated.
-func runURLTest(u string) {
-	conf := getConfig()
+func RunURLTest(u string) {
+	conf := GetConfig()
 
 	URL, err := url.Parse(u)
 	if err != nil {
@@ -163,10 +163,9 @@ func runURLTest(u string) {
 		fmt.Println("The image's hash is", hash)
 
 		for _, h := range conf.ImageHashes {
-			distance := dhash.Distance(hash, h.Hash)
-			if distance <= h.Threshold || h.Threshold == -1 && distance <= conf.DhashThreshold {
+			if dhash.Distance(hash, h) <= conf.DhashThreshold {
 				tally[rule{imageHash, h.String()}]++
-				fmt.Printf("Matching image hash found: %v (%d bits difference)\n", h, distance)
+				fmt.Printf("Matching image hash found: %v (%d bits difference)\n", h, dhash.Distance(hash, h))
 			}
 		}
 	}

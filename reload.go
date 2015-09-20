@@ -1,4 +1,4 @@
-package main
+package redwood
 
 import (
 	"log"
@@ -15,19 +15,19 @@ import (
 var configRequests = make(chan chan *config)
 
 // getConfig returns the current configuration.
-func getConfig() *config {
+func GetConfig() *config {
 	ch := make(chan *config)
 	configRequests <- ch
 	return <-ch
 }
 
-var listenerChan = make(chan net.Listener)
+var ListenerChan = make(chan net.Listener)
 
 var activeConnections sync.WaitGroup
 
 // manageConfig manages Redwood's configuration, reloading it when SIGHUP is received.
-func manageConfig() {
-	conf, err := loadConfiguration()
+func ManageConfig(configRoot string) {
+	conf, err := loadConfiguration(configRoot)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func manageConfig() {
 
 		case <-hupChan:
 			log.Println("Received SIGHUP")
-			newConf, err := loadConfiguration()
+			newConf, err := loadConfiguration(configRoot)
 			if err != nil {
 				log.Println("Error reloading configuration:", err)
 				break
@@ -74,7 +74,7 @@ func manageConfig() {
 
 			conf.startWebServer()
 
-		case l := <-listenerChan:
+		case l := <-ListenerChan:
 			listeners = append(listeners, l)
 
 		case <-termChan:
